@@ -21,7 +21,7 @@ In order to run the scripts exactly as they are provided here, you need to downl
 
 Additionally, you should create the following folders and sub-folders for saving the figures:
 
-*animations
+* animations
   * slp_and_wind
   * wind_prec
 * figures
