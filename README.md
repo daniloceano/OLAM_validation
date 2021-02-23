@@ -38,8 +38,8 @@ Data is separated into events. There are 12 events in total and the correspondin
 
 Reanalysis data contained here (and the link for download) is listed below:
 
-	* Modern-Era Retrospective analysis for Research and Applications, Version 2 (MERRA-2, https://disc.gsfc.nasa.gov/datasets/M2I3NPASM_5.12.4/summary)
-	* The Tropical Rainfall Measuring Mission (TRMM, https://disc.gsfc.nasa.gov/datasets/TRMM_3B42RT_7/summary?keywords=TRMM_3B42RT_7)
-	* Global Precipitation Measurement (GPM, https://disc.gsfc.nasa.gov/datasets/GPM_3IMERGHH_06/summary?keywords=%22IMERG%20final%22)
+* Modern-Era Retrospective analysis for Research and Applications, Version 2 (MERRA-2, https://disc.gsfc.nasa.gov/datasets/M2I3NPASM_5.12.4/summary)
+* The Tropical Rainfall Measuring Mission (TRMM, https://disc.gsfc.nasa.gov/datasets/TRMM_3B42RT_7/summary?keywords=TRMM_3B42RT_7)
+* Global Precipitation Measurement (GPM, https://disc.gsfc.nasa.gov/datasets/GPM_3IMERGHH_06/summary?keywords=%22IMERG%20final%22)
 
 The OLAM configuration files can be found at https://data.4tu.nl/articles/dataset/Processed_Data_of_Extreme_Events_for_the_Coastal_Region_of_Southern_Brazil/12721367/2
