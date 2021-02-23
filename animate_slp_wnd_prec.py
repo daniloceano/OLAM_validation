@@ -1,9 +1,20 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
+# Souza & Ramos da Silva,
+
+# Ocean-Land Atmosphere Model (OLAM) performance for major extreme
+#   meteorological events near the coastal region of southern Brazil,
+
+# Climate Research, in revision 2020
+
+
 """
 Created on Wed Jan  6 17:36:04 2021
 
 @author: Danilo
+
+
+Script for creating animations showing OLAM and Reanalysis 
+precipitation, slp and wind vectors, for each event
+
 """
 import os
 os.system('cls' if os.name == 'nt' else 'clear')
@@ -11,13 +22,10 @@ import numpy as np
 from celluloid import Camera
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
-import cmocean as cmo
 import cartopy.feature as cfeature
 import cartopy.crs as ccrs
-import datetime as dt
-from datetime import timedelta
-
-from prepare_data import (open_olam, open_gpm_trmm, open_merra, unacc_olam_prec, GPM_to_3h, MERRA_to_GPM_grid)
+from matplotlib.colors import LinearSegmentedColormap
+from prepare_data import (open_olam, open_gpm_trmm, open_merra, unacc_olam_prec)
     
 # ----------
 # params for plotting
@@ -43,6 +51,23 @@ def plot_background(ax):
     return ax
 # ----------
 def make_gif(event): 
+    # create colormap
+    col_hcl = [
+     [0.9921568627450981, 0.6588235294117647, 0.7058823529411765],       
+     [0.9294117647058824, 0.4392156862745098, 0.6627450980392157],       
+     [0.8, 0.16470588235294117, 0.6470588235294118], 
+     [0.5294117647058824, 0.058823529411764705, 0.5254901960784314],  
+     [0.36470588235294116,0.1568627450980392, 0.39215686274509803],  
+     [0.3215686274509804, 0.2549019607843137, 0.4549019607843137],      
+     [0.1843137254901961, 0.4627450980392157, 0.5725490196078431], 
+     [0.0, 0.5843137254901961, 0.6862745098039216],
+     [0.09411764705882353, 0.7411764705882353, 0.6901960784313725],
+     [0.9450980392156862, 0.9450980392156862, 0.9450980392156862]
+     ]   
+    col_hcl.reverse()
+    cmap = LinearSegmentedColormap.from_list(
+        'MyMap', col_hcl, N=20)
+    cmap.set_under('white')
     # ----------
     # open OLAM files and get data
     file = open_olam(event,'sslp')  
@@ -66,13 +91,10 @@ def make_gif(event):
     if event < 3:
         # GPM file and variables    
         pr = open_gpm_trmm(event).precipitationCal
-        lonsrep, latsrep = pr.lon, pr.lat 
-        # --         
-        # accumulate 3h GPM prec
-        pr3h = GPM_to_3h(times,pr)     
+        pr3h = pr.resample(time='3h').sum() 
     else:
         pr3h = open_gpm_trmm(event).precipitation
-        lonsrep, latsrep = pr3h.lon, pr3h.lat 
+    lonsrep, latsrep = pr3h.lon, pr3h.lat 
     # --   
     # MERRA-2 file and variables
     mfile = open_merra(event)
@@ -130,7 +152,7 @@ def make_gif(event):
         ax1.clabel(cl, inline=1, fontsize=10, fmt='%1.0f')        
         # --
         # contour precipitation
-        cf1 = ax1.contourf(lons, lats, pt.sel(time=t), clevs_prec,cmap='magma_r',extend= 'max')        
+        cf1 = ax1.contourf(lons, lats, pt.sel(time=t), clevs_prec,cmap=cmap,extend= 'max')        
         ax1.contour(lons, lats, pt.sel(time=t), clevs_prec,colors='grey', linewidths=1) 
         # --
         # wind vectors
@@ -156,9 +178,10 @@ def make_gif(event):
         # contour precipitation
         if event < 3:
             prec = pr3h.sel(time=t)
+            prec = prec.transpose('lat','lon')
         else:
             prec = pr3h.sel(time=ct)
-        cf1 = ax2.contourf(lonsrep, latsrep, prec, clevs_prec,cmap='magma_r',extend= 'max')        
+        cf1 = ax2.contourf(lonsrep, latsrep, prec, clevs_prec,cmap=cmap,extend= 'max')        
         ax2.contour(lonsrep, latsrep, prec, clevs_prec,colors='grey', linewidths=1)   
         # --
         # wind vectors
@@ -178,7 +201,7 @@ def make_gif(event):
     # -------------    
     animation = camera.animate(interval = 200, repeat = True,
                                    repeat_delay = 100000)
-    animation.save('E0'+str(event)+'_wind_prec.gif')    
+    animation.save('/animations/wind_prec/E0'+str(event)+'_wind_prec.gif')    
 # ----------
 # make gif for all events 
 if __name__ == "__main__":    

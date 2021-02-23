@@ -1,7 +1,14 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
+# Souza & Ramos da Silva,
+
+# Ocean-Land Atmosphere Model (OLAM) performance for major extreme
+#   meteorological events near the coastal region of southern Brazil,
+
+# Climate Research, in revision 2020
 """
 Created on Sat Feb  6 17:34:55 2021
+
+Script for analysing SLp and Wind Speed data
+
 
 @author: Danilo
 """
@@ -9,7 +16,6 @@ import statistics_Danilo as st
 from prepare_data import (regridSLPWind, GetSLPWindData, regrid)
 from stats_accprec_time_evo import (mean_corrl, DataToDataFrame)
 from scipy import stats
-
 #
 import numpy as np
 import pandas as pd
@@ -27,7 +33,7 @@ from matplotlib.colors import LinearSegmentedColormap
 # ----------
 def Get_SLP_Wind_At_EvPeak(event, re):
     olam,obs = GetSLPWindData(event)[0],GetSLPWindData(event)[1]           
-
+    # dates corresponding to each event peak time
     dates = ['2018-01-11T18:00:00.000000000',
             '2017-06-04T21:00:00.000000000',
             '2011-09-08T09:00:00.000000000',
@@ -40,16 +46,12 @@ def Get_SLP_Wind_At_EvPeak(event, re):
             '2006-09-03T18:00:00.000000000',
             '2005-08-10T09:00:00.000000000',
             '2004-03-28T06:00:00.000000000']
-    
     obs = obs.sel(time=dates[event-1])        
     olam = olam.sel(time=dates[event-1]).assign(lev=obs.lev)
-        
+    # regrid data, if asked
     if re == 'y':
         olam = regridSLPWind(obs.lon,obs.lat,olam,event)
-    
     return obs, olam
-
-
 
 # ----------
 # params for plotting
@@ -74,7 +76,9 @@ def plot_background(ax):
     return ax
 
 def plot_slp_panel():
-    
+    '''
+    Plot SLP panels for each event peak time
+    '''
     cmap = cmocean.cm.balance
     # figure params
     fig = plt.figure(figsize=(10,15) , constrained_layout=False)
@@ -101,7 +105,7 @@ def plot_slp_panel():
             lonso, latso = olam.lon, olam.lat
             olam_slp = olam.sslp/100
             uo, vo = olam.uwnd, olam.vwnd   
-#            clevs_slp = np.arange(990, 1051,2)
+            # adjust SLP limts accordingly to each event data
             minslp = round(np.amin([int(np.amin(obs_slp.values)), int(np.amin(olam_slp.values))])-5,-1)
             maxslp = round(np.amax([int(np.amax(obs_slp.values)), int(np.amax(olam_slp.values))])+5,-1)
             if minslp > 1014:
@@ -118,7 +122,7 @@ def plot_slp_panel():
             axs.append(fig.add_subplot(gs2[panel2 - 1], projection=datacrs))
         ax1 = axs[-1]
         axs.append(ax1)        
-        
+        # plot reanalysis
         if i % 2 != 0: 
             cf1 = ax1.contourf(lonsre, latsre, obs_slp, norm=norm,
                                cmap=cmap) 
@@ -132,6 +136,7 @@ def plot_slp_panel():
                            fontproperties={'size': 14, 'weight': 'bold'})
             if ev < 3:
                 ax1.text(-51,-25.8,'OBS.', fontsize=16)
+        # plot OLAM
         else:
             cf2 = ax1.contourf(lonso, latso, olam_slp, norm=norm,
                                cmap=cmap) 
@@ -167,7 +172,9 @@ def plot_slp_panel():
     
 
 def plot_wind_panel():
-    
+    '''
+    Plot Wind Speed panels for each event peak time
+    '''
     # create colormap
     col_hcl = [
      [0.9921568627450981, 0.6588235294117647, 0.7058823529411765],       
@@ -185,7 +192,6 @@ def plot_wind_panel():
     cmap = LinearSegmentedColormap.from_list(
         'MyMap', col_hcl, N=20)
     cmap.set_under('white')
-    
     # figure params
     fig = plt.figure(figsize=(10,15) , constrained_layout=False)
     gs1 = gridspec.GridSpec(6, 2, hspace=0.25, wspace=0.15, left=0.01, right=0.45)
@@ -212,7 +218,6 @@ def plot_wind_panel():
             lonso, latso = olam.lon, olam.lat
             uo, vo = olam.uwnd, olam.vwnd   
             wso = np.sqrt(uo**2 + vo**2)
-#            clevs_slp = np.arange(990, 1051,2)
             maxws = round(np.amax([int(np.amax(wso.values)), int(np.nanmax(wsre.values))]),-1)           
             norm = colors.Normalize(vmin=0, vmax=maxws)
         # figure
@@ -224,7 +229,7 @@ def plot_wind_panel():
             axs.append(fig.add_subplot(gs2[panel2 - 1], projection=datacrs))
         ax1 = axs[-1]
         axs.append(ax1)        
-        
+        # plot reanalysis data
         if i % 2 != 0: 
             cf1 = ax1.contourf(lonsre, latsre, wsre, norm=norm,
                                cmap=cmap) 
@@ -235,6 +240,7 @@ def plot_wind_panel():
             ax1.text(-53,-27.5,str(ev), fontsize = 18, bbox=props)  
             if ev < 3:
                 ax1.text(-51,-25.8,'OBS.', fontsize=16)
+        # plot OLAM data
         else:
             cf2 = ax1.contourf(lonso, latso, wso, norm=norm,
                                cmap=cmap) 
@@ -269,26 +275,38 @@ def plot_wind_panel():
 
 
 def obs_model_panel_slp():
-    
+    '''
+    Make scater plot of observed  x simulated data,
+        and also plot a linear regression line
+    '''
+    # fig params
     fig = plt.figure(figsize=(15,15))
     gs1 = gridspec.GridSpec(4, 3, hspace=0.2, wspace=0.4)
     axs = []
     cmap = cmocean.cm.balance
     props = dict(boxstyle='round', facecolor='wheat', alpha=0.5)
-    for i in range(1,13):          
+    for i in range(1,13):   
+        # fig
         axs.append(fig.add_subplot(gs1[i - 1]))
         ax1 = axs[-1]           
+        # get data
         tmp = Get_SLP_Wind_At_EvPeak(i,'y')
         obs, olam = tmp[0].transpose('lat','lev','lon'),tmp[1].transpose('lat','lev','lon')
         obs, olam = obs.SLP/100, olam.sslp/100
-        # regression data
+        # This first method returns the regression data
+        #   in a comprehensive way, but not best for plot
         B0, B1, reg_line = st.linear_regression(obs.values, olam.values)
         R = st.Scorr(obs, olam)[0]        
         text = ''' R^2: {}
         y = {} + {}X'''.format(round(R**2, 2),
                                round(B0, 2),
                                round(B1, 2))
-        gradient, intercept, r_value, p_value, std_err = stats.linregress(olam.values.ravel(),obs.values.ravel())            
+        # This method is not great for presenting data
+        #   but it is easier for plotting 
+        gradient, intercept, r_value, p_value, std_err = \
+            stats.linregress((olam.values.ravel()),
+                             (obs.values.ravel()))  
+        # Adjust min and max plot limits
         minslp = round(np.amin([int(np.amin(obs.values)), int(np.amin(olam.values))])-5,-1)
         maxslp = round(np.amax([int(np.amax(obs.values)), int(np.amax(olam.values))])+5,-1)
         if minslp > 1014:
@@ -297,9 +315,11 @@ def obs_model_panel_slp():
             maxslp = 1030
         x1=np.linspace(minslp,maxslp,500)
         y1=gradient*x1+intercept             
-        norm = colors.DivergingNorm(vmin=minslp, vcenter=1014, vmax=maxslp)            
+        norm = colors.DivergingNorm(vmin=minslp, vcenter=1014, vmax=maxslp)  
+        # plot          
         ax1.scatter(olam,obs,c=obs,cmap=cmap,norm=norm,alpha=0.85)
-        ax1.loglog(x1,y1,"k")
+        ax1.plot(x1,y1,"k")
+        # plot cosmedics
         if i > 9:        
             ax1.set_xlabel('Olam', fontsize = 18)
         if i  == 1 or i == 4 or i == 7 or i == 10:
@@ -310,14 +330,13 @@ def obs_model_panel_slp():
         ax1.set_xlim(minslp,maxslp)
         ax1.set_ylim(minslp,maxslp)
         ax1.set_aspect('equal', 'datalim')
-        
     pl.savefig('./figures/slp_wind/obs_x_olam_slp_panel.jpg', format='jpg')    
     pl.savefig('./figures/slp_wind/obs_x_olam_slp_panel.eps', format='eps', dpi=300)    
 
 
 def obs_model_panel_wind():
     
-        # create colormap
+    # create colormap
     col_hcl = [
      [0.9921568627450981, 0.6588235294117647, 0.7058823529411765],       
      [0.9294117647058824, 0.4392156862745098, 0.6627450980392157],       
@@ -333,20 +352,25 @@ def obs_model_panel_wind():
     col_hcl.reverse()
     cmap = LinearSegmentedColormap.from_list(
         'MyMap', col_hcl, N=20)
-    
-    
+    # Fig params
     fig = plt.figure(figsize=(15,15))
     gs1 = gridspec.GridSpec(4, 3, hspace=0.2, wspace=0.4)
     axs = []
     props = dict(boxstyle='round', facecolor='wheat', alpha=0.5)
-    for i in range(1,13):          
+    for i in range(1,13):    
+        # fig
         axs.append(fig.add_subplot(gs1[i - 1]))
         ax1 = axs[-1]           
+        # get data
         tmp = Get_SLP_Wind_At_EvPeak(i,'y')
         obs, olam = tmp[0].transpose('lat','lev','lon'),tmp[1].transpose('lat','lev','lon')
         obs = np.sqrt(obs.U**2 + obs.V**2).sel(lev=1000)
         olam = np.sqrt(olam.uwnd**2 + olam.vwnd**2)
-        # regression data
+        # data limits
+        minws = round(np.amin([int(np.nanmin(obs.values)), int(np.nanmin(olam.values))])-5,-1)
+        maxws = round(np.amax([int(np.nanmax(obs.values)), int(np.nanmax(olam.values))])+5,-1)        
+        # This first method returns the regression data
+        #   in a comprehensive way, but not best for plot
         mask = ~np.isnan(olam.values) & ~np.isnan(obs.values)
         B0, B1, reg_line = st.linear_regression(obs.values[mask], olam.values[mask])
         R = st.Scorr(obs, olam)[0]        
@@ -354,14 +378,18 @@ def obs_model_panel_wind():
         y = {} + {}X'''.format(round(R**2, 2),
                                round(B0, 2),
                                round(B1, 2))
+        # This method is not great for presenting data
+        #   but it is easier for plotting
         mask = ~np.isnan(olam.values.ravel()) & ~np.isnan(obs.values.ravel())
-        gradient, intercept, r_value, p_value, std_err = stats.linregress(olam.values.ravel()[mask],obs.values.ravel()[mask])         
-        minws = round(np.amin([int(np.nanmin(obs.values)), int(np.nanmin(olam.values))])-5,-1)
-        maxws = round(np.amax([int(np.nanmax(obs.values)), int(np.nanmax(olam.values))])+5,-1)        
+        gradient, intercept, r_value, p_value, std_err = \
+            stats.linregress(np.log(olam.values.ravel()[mask]),
+                             np.log(obs.values.ravel()[mask]))    
         x1=np.linspace(minws,maxws,500)
-        y1=gradient*x1+intercept          
-        ax1.scatter(olam,obs,c=obs,cmap=cmap,alpha=0.85)
-        ax1.loglog(x1,y1,"k")        
+        y1=gradient*x1+intercept   
+        # plot
+        ax1.scatter(np.log(olam),np.log(obs),c=obs,cmap=cmap,alpha=0.85)
+        ax1.loglog(x1,y1,"k")  
+        # cosmedics
         if i > 9:        
             ax1.set_xlabel('Olam', fontsize = 18)
         if i  == 1 or i == 4 or i == 7 or i == 10:
@@ -371,29 +399,29 @@ def obs_model_panel_wind():
         ax1.set_xlim(minws,maxws)
         ax1.set_ylim(minws,maxws)
         ax1.set_aspect('equal', 'datalim')
-        
     pl.savefig('./figures/slp_wind/obs_x_olam_wind_panel.jpg', format='jpg')    
     pl.savefig('./figures/slp_wind/obs_x_olam_wind_panel.eps', format='eps', dpi=300)    
-                
-                
+                               
 def truncate_colormap(cmap, minval=0.0, maxval=1.0, n=100):
     new_cmap = colors.LinearSegmentedColormap.from_list(
         'trunc({n},{a:.2f},{b:.2f})'.format(n=cmap.name, a=minval, b=maxval),
         cmap(np.linspace(minval, maxval, n)))
     return new_cmap  
 
-
 def export_stats_SLP(): 
-# export statistics to csv file     
+    '''
+    Export statistics to csv file
+    '''     
+    # save data into array
     arr = []
     for event in range(1,13):
         print('------------------------------------------------')
         print('making statistics for event '+str(event)+'...')
         ev = []
-        
+        # get data
         obs, olam = Get_SLP_Wind_At_EvPeak(event,'y')
         obs, olam = obs.SLP/100, olam.sslp/100
-        
+        # append stats to array
         ev.append(str(event))
         ev.append(np.amax(obs).values)
         ev.append(np.amin(obs).values)        
@@ -416,9 +444,7 @@ def export_stats_SLP():
         ev.append(st.ConcordanceIndex(obs, olam)) 
         ev.append(st.D_pielke(obs, olam))
         arr.append(ev)
-        
-
-
+    # write array into csv
     with open('SLP_validation_stats.csv','w') as f:
         writer = csv.writer(f)
         writer.writerow(['Event', 'max_obs', 'min_obs','obs_std','max_model',
@@ -430,37 +456,43 @@ def export_stats_SLP():
         writer.writerows(arr)
 
 def Create_df(obs,olam):
-        # This is for computating correlation with NaN values
-        data_obs = []
-        for i in obs.values:
-                for j in i:
-                    data_obs.append(j)        
-        data_olam = []
-        for i in olam.values:
-                for j in i:
-                    data_olam.append(j)                    
-        diff = []
-        for i in range(len(data_obs)):
-                diff.append(data_obs[i]-data_olam[i])
-        df = pd.DataFrame({'Obs': data_obs,
-                           'olam': data_olam,
-                           'diff': diff})               
-        return df    
+    '''
+    Create a Pandas dataframe for handling the data. 
+      (workaround for computating correlations with NaN values)
+    '''
+    data_obs = []
+    for i in obs.values:
+            for j in i:
+                data_obs.append(j)        
+    data_olam = []
+    for i in olam.values:
+            for j in i:
+                data_olam.append(j)                    
+    diff = []
+    for i in range(len(data_obs)):
+            diff.append(data_obs[i]-data_olam[i])
+    df = pd.DataFrame({'Obs': data_obs,
+                       'olam': data_olam,
+                       'diff': diff})               
+    return df     
         
 def export_stats_wind(): 
-# export statistics to csv file     
+    '''
+    Export statistics to csv file
+    '''     
+    # save data into array    
     arr = []
     for event in range(1,13):
         print('------------------------------------------------')
         print('making statistics for event '+str(event)+'...')
         ev = []
-        
+        # get data
         obs, olam = Get_SLP_Wind_At_EvPeak(event,'y')
         obs = np.sqrt(obs.U**2 + obs.V**2).sel(lev=1000)
         olam = np.sqrt(olam.uwnd**2 + olam.vwnd**2)
-        
+        # pass data to data frame
         df = Create_df(obs,olam)
-        
+        # append stats to array
         mean_model = float(olam.mean('lon').mean('lat').values)
         mean_obs = float(obs.mean('lon').mean('lat').values)
         ev.append(str(event))
@@ -486,9 +518,7 @@ def export_stats_wind():
         ev.append(st.ConcordanceIndex(obs, olam)) 
         ev.append(st.D_pielke(obs, olam))
         arr.append(ev)
-        
-
-
+    # write array into csv
     with open('wind_validation_stats.csv','w') as f:
         writer = csv.writer(f)
         writer.writerow(['Event', 'mean_obs','max_obs','obs_std','mean_model',
@@ -500,53 +530,66 @@ def export_stats_wind():
         writer.writerows(arr)
 
 
-def CorrlEachtime(event):
-    
+def CorrlEachTime(event):
+    '''
+    Get spatial correlation values of wind Speed and SLP
+        for each Data time step (3h).
+    '''
+    # getdata
     tmp = GetSLPWindData(event)
     olam,obs = tmp[0],tmp[1]
-    
+    # arrays for storing the data
     corrl_ws = []
     corrl_slp = []
+    # loop through time steps
     for t in olam.time:
-        
+        # data for each time step
         obs_ = obs.sel(time=t)        
         olam_ = olam.sel(time=t).assign(lev=obs.lev)        
         olam_ = regridSLPWind(obs.lon,obs.lat,olam_,event)
-        
+        # calculate wind speed
         obs_ws = np.sqrt(obs_.U**2 + obs_.V**2).sel(lev=1000)
         olam_ws = np.sqrt(olam_.uwnd**2 + olam_.vwnd**2)
-        
+        # Pass data to Dataframe for handling NaNs
         df = Create_df(obs_ws,olam_ws)
         corrl_ws.append(df.corr('pearson')['Obs']['olam'])
-        
         corrl_slp.append(st.Scorr(obs_.SLP, olam_.sslp)[0])
-        
     return corrl_ws, corrl_slp, olam.time
 
 def corrl_time_evo(prec):
-    
+    '''
+    Creates a figure showing temporal evolution of correlation values
+        for each event.
+    Parameters
+    ----------
+    prec : float ('y' or 'n')
+        Decides if plot correlation for accumulated preciptation data
+    '''
+    # Fig params
     fig = plt.figure(figsize=(15,15))
     gs1 = gridspec.GridSpec(4, 3, hspace=0.225, wspace=0.1)
     axs = []
+    # box for plotting texts
     props = dict(boxstyle='round', facecolor='wheat', alpha=0.5)
-    for i in range(1,13):          
+    for i in range(1,13):   
+        # fig
         axs.append(fig.add_subplot(gs1[i - 1]))
         ax1 = axs[-1]           
-        
-        tmp = CorrlEachtime(i)
+        # get data
+        tmp = CorrlEachTime(i)
         corrl_ws, corrl_slp = tmp[0], tmp[1]
         time = tmp[2]
-                   
+        # plot
         ax1.plot(time,corrl_ws,c='#836953',marker='o',
                  alpha=0.85,label='Wind Spd.', linewidth=2)
         ax1.plot(time,corrl_slp,c='#028e2c',marker='v',
                  alpha=0.85,  label='SLP', linewidth=2)
-        
+        # plot prec if requested
         if prec == 'y':
             corrl_prec = mean_corrl(i)[2]
             ax1.plot(time,corrl_prec,c='#54718F',marker='s',
                  alpha=0.85,  label='Acc. Prec.', linewidth=2)
-        
+        # figure cosmedics
         if i  == 1 or i == 4 or i == 7 or i == 10:
             ax1.set_ylabel('Corrl. I.',fontsize = 16)
         if i == 1:
@@ -555,7 +598,6 @@ def corrl_time_evo(prec):
         plt.setp(ax1.xaxis.get_majorticklabels(), rotation=20)
         ax1.set_ylim(0,1)
         ax1.grid(linestyle='--',linewidth=0.25,c='gray')
-    
     if prec == 'n':    
         pl.savefig('./figures/slp_wind/time_corrl.jpg', format='jpg')    
         pl.savefig('./figures/slp_wind/time_corrl.eps', format='eps', dpi=300)    
@@ -565,15 +607,25 @@ def corrl_time_evo(prec):
 
 
 def TestMannWithneyU_DailySLP():
+    '''
+    Performs a Mann Whitnney U test for daily means of SLP data
+    
+    Returns
+    -------
+    Dictionary containing test results for each event and each day  
+    '''
+    # Dict
     MWUT = {}
     for i in range(1,13):
+        # Create list for each event
         MWUT['Event '+str(i)] = []
+        # Get data
         tmp = GetSLPWindData(i)
         olam,obs = tmp[0],tmp[1]
+        # Get daily means
         olam = olam.sslp.resample(time='1D').mean('time')
         obs = obs.SLP.resample(time='1D').mean('time')
-        #daily corrl
-        olam_r = regrid(obs.lon,obs.lat,olam,i)
+        # Daily corrl
         for d in olam.time:
             stat, p = stats.mannwhitneyu(obs.sel(time=d).values.ravel(), olam.sel(time=d).values.ravel())
             alpha = 0.05
@@ -581,17 +633,25 @@ def TestMannWithneyU_DailySLP():
                 MWUT['Event '+str(i)].append('Same distribution (fail to reject H0)')
             else:
                 	MWUT['Event '+str(i)].append('Different distribution (reject H0)')
-    
     return MWUT
 
 def TestMannWithneyU_allSLP():
+    '''
+    Performs a Mann Whitnney U test for SLP data, for each time step
+    
+    Returns
+    -------
+    Dictionary containing test results for each event and each time step  
+    '''
+    # Dict
     MWUT = {}
     for i in range(1,13):
+        # Create list for each event
         MWUT['Event '+str(i)] = []
+         # Get data
         tmp = GetSLPWindData(i)
         olam,obs = tmp[0].sslp,tmp[1].SLP
-        #daily corrl
-        olam_r = regrid(obs.lon,obs.lat,olam,i)
+        # Daily corrl
         for d in olam.time:
             stat, p = stats.mannwhitneyu(obs.sel(time=d).values.ravel(), olam.sel(time=d).values.ravel())
             alpha = 0.05
@@ -599,18 +659,23 @@ def TestMannWithneyU_allSLP():
                 MWUT['Event '+str(i)].append('Same distribution (fail to reject H0)')
             else:
                 	MWUT['Event '+str(i)].append('Different distribution (reject H0)')
-    
     return MWUT
 
 def PlotBoxPLotSLP(which):
-
+    '''
+    Create Boxplots for daily mean SLP
+    '''
+    # Figure params
     fig = plt.figure(figsize=(15,15))
     gs1 = gridspec.GridSpec(4, 3, hspace=0.125, wspace=0.3)
     axs = []
+    # colors for plots
     c1 ='#0077b6'
     c2 = '#ff6961'
+    # box for plotting texts
     props = dict(boxstyle='round', facecolor='wheat', alpha=0.5) 
     for i in range(1,13):
+        # get data
         tmp = GetSLPWindData(i)
         olam,obs = tmp[0],tmp[1]
         olam = olam.resample(time='1D').mean('time')
@@ -620,12 +685,14 @@ def PlotBoxPLotSLP(which):
         elif which == 'wind':
             obs_data = np.sqrt(obs.U**2 + obs.V**2)   
             olam_data = np.sqrt(olam.uwnd**2 + olam.vwnd**2)
+        # pass data to Pandas Dataframe
         olam_df = DataToDataFrame(olam_data)
         obs_df = DataToDataFrame(obs_data) 
+        # mask NaNs in wind data
         if which == 'wind':
             mask = ~np.isnan(obs_df.values) 
             obs_df = obs_df[mask]
-        #daily corrl
+        # Daily corrl
         olam_datar = regrid(obs.lon,obs.lat,olam_data,i)
         corrl = []
         for d in olam.time:
@@ -639,9 +706,9 @@ def PlotBoxPLotSLP(which):
         ax1 = axs[-1]
         axs.append(ax1)
         ax2 = axs[-1].twinx()
-        
+        # ticks for the x-axis
         ticks = np.arange(0,len(obs_df.columns))
-             
+        # plot reanalysis     
         ax1.boxplot(obs_df, labels=obs_df.columns,
         positions=np.array(ticks)*4-1, widths=1.6,
         showfliers=False,
@@ -649,7 +716,7 @@ def PlotBoxPLotSLP(which):
         boxprops=dict(facecolor=c1), 
         medianprops=dict(color='k', linewidth=2),
         flierprops=dict(color='k'))
-        
+        # plot olam
         ax1.boxplot(olam_df, labels=olam_df.columns,
         positions=np.array(ticks)*4+1,widths=1.6,                
         showfliers=False,
@@ -657,19 +724,19 @@ def PlotBoxPLotSLP(which):
         boxprops=dict(facecolor=c2), 
         medianprops=dict(color='k', linewidth=2),
         flierprops=dict(color='k'))
-        
+        # plot correlation values
         ax2.plot(s1.dropna(),c='#028e2c',marker='v',
                  alpha=0.85,  label='Corrl.', linewidth=2)
         ax2.set_ylim(0,1)
         ax2.grid(linewidth=0.25,c='gray')        
-        
+        # create fake labels
         if i == 1:
             plt.plot([], c=c1, label='Reanalysis')
             plt.plot([], c=c2, label='OLAM')
             plt.legend(fontsize=14,loc='upper right')
-        
+        # ticks
         plt.xticks(np.arange(0, (len(ticks)) * 4, 4), range(1,len(obs_df.columns)+1))
-        
+        # cosmedics
         ax1.text(.05,0.05, str(i), fontsize = 14,
                  transform=ax1.transAxes, bbox=props)
         ax1.tick_params(labelsize=12)
@@ -688,15 +755,15 @@ def PlotBoxPLotSLP(which):
     pl.savefig('./figures/slp_wind/daily_boxplot'+str(which)+'.eps', format='eps', dpi=300)
      
     
-## ----------
-#if __name__ == "__main__": 
-#    plot_slp_panel()
-#    plot_wind_panel()
-#    obs_model_panel_slp()
-#    obs_model_panel_wind()
-#    export_stats_SLP()
-#    export_stats_wind()
-#    corrl_time_evo('n')
-#    corrl_time_evo('y')
-#    PlotBoxPLotSLP('slp')
-#    PlotBoxPLotSLP('wind')
+# ----------
+if __name__ == "__main__": 
+    plot_slp_panel()
+    plot_wind_panel()
+    obs_model_panel_slp()
+    obs_model_panel_wind()
+    export_stats_SLP()
+    export_stats_wind()
+    corrl_time_evo('n')
+    corrl_time_evo('y')
+    PlotBoxPLotSLP('slp')
+    PlotBoxPLotSLP('wind')

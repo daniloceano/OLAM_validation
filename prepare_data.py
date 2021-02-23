@@ -1,23 +1,29 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
+# Souza & Ramos da Silva,
+
+# Ocean-Land Atmosphere Model (OLAM) performance for major extreme
+#   meteorological events near the coastal region of southern Brazil,
+
+# Climate Research, in revision 2020
 """
 Created on Thu Jan 21 11:49:19 2021
+
+This script will open the datasets and perform several processing
+ such as converting data ranges and dimensions.
 
 @author: Danilo
 """
 import xesmf as xe
 import xarray as xr
 import numpy as np
-import pandas as pd
 # ----------
 # custom functions
-def open_olam(event,var):    
+def open_olam(event,var):  
     if event < 10:
         file = xr.open_dataset('./OLAM_netcdf/OLAM_alltimes_E0'
                                 +str(event)+'_'+str(var)+'.nc')
     else:
          file = xr.open_dataset('./OLAM_netcdf/OLAM_alltimes_E'
-                                 +str(event)+'_'+str(var)+'.nc')         
+                                     +str(event)+'_'+str(var)+'.nc')         
     return file
 # --
 def open_gpm_trmm(event):
@@ -54,7 +60,7 @@ def regrid(input_lon,input_lat,input_file,event):
     output_file = xr.DataArray(coords=[input_file.time, input_lat, input_lon],
                                    dims=["time", "lat","lon"])
     regridder = xe.Regridder(input_file, output_file, 'bilinear')
-    regridder.clean_weight_file()
+    # regridder.clean_weight_file()
     regridder
     output_file = regridder(input_file) 
     return output_file
@@ -66,7 +72,7 @@ def regridSLPWind(input_lon,input_lat,input_file,event):
     output_file = xr.DataArray(coords=[input_lat, input_file.lev, input_lon],
                                    dims=["lat","lev","lon"])
     regridder = xe.Regridder(input_file, output_file, 'bilinear')
-    regridder.clean_weight_file()
+    # regridder.clean_weight_file()
     regridder
     output_file = regridder(input_file) 
     return output_file
@@ -75,9 +81,9 @@ def GetPrecData(event):
     min_lon, max_lon, min_lat, max_lat = -54, -44.05, -34, -25.05
     olam_data = open_olam(event,'pmic').pmic + open_olam(event,'pcon').pcon
     if event < 3:
-        re_data = open_gpm_trmm(event).precipitationCal
+        re_data = open_gpm_trmm(event).precipitationCal*.5
     else: 
-        re_data = open_gpm_trmm(event).precipitation
+        re_data = open_gpm_trmm(event).precipitation*3
     # Slice in order to maintain same spatial domain
     olam_data = olam_data.sel(lat=slice(min_lat,max_lat),
                               lon=slice(min_lon,max_lon))
@@ -95,3 +101,11 @@ def GetSLPWindData(event):
     re_data = re_data.sel(lat=slice(min_lat,max_lat),
                               lon=slice(min_lon,max_lon))   
     return olam_data, re_data       
+
+def FluxData(event):
+    min_lon, max_lon, min_lat, max_lat = -54, -44.05, -34, -25.05
+    olam_data = open_olam(event,'lhf').assign(open_olam(event,'shf'))
+    # Slice in order to maintain same spatial domain
+    olam_data = olam_data.sel(lat=slice(min_lat,max_lat),
+                              lon=slice(min_lon,max_lon))
+    return olam_data       
