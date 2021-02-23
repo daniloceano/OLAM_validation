@@ -34,7 +34,7 @@ Additionally, you should create the following folders and sub-folders for saving
 
 ## Data
 
-Data is separated into events. There are 12 events in total and the corresponding dates can be checking in the original manuscript/article or by opening the NetCDFs files and assessing the time dimension
+Data is separated into events. There are 12 events in total and the corresponding dates can be checked in the original manuscript/article or by opening the NetCDFs files and assessing the time dimension
 
 Reanalysis data contained here (and the link for download) is listed below:
 
