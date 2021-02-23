@@ -2,7 +2,7 @@
 
 Programs and scripts used for the OLAM model validation
 
-The programs and scripts contained here wee elaborated for performing analysis for the above mentioned research article:
+The programs and scripts contained here were elaborated for performing analysis for the above mentioned research article:
 
 Ocean-Land Atmosphere Model (OLAM) performance for major extreme meteorological events near the coastal region of southern Brazil, submitted for Climate Research, in revision 2020.
 
