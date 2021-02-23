@@ -1,7 +1,15 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
+# Souza & Ramos da Silva,
+
+# Ocean-Land Atmosphere Model (OLAM) performance for major extreme
+#   meteorological events near the coastal region of southern Brazil,
+
+# Climate Research, in revision 2020
+
 """
 Created on Wed Jan  6 17:36:04 2021
+
+Script for creating animations showing OLAM 
+ slp and wind vectors, for each event
 
 @author: Danilo
 """
@@ -78,19 +86,25 @@ def make_gif(event):
         ax1.contour(lons,lats,slp.sel(time=t)/100, clevs_slp,
                            colors = 'gray', linewidths=1)
         ax1.quiver(lons[::10],lats[::10],uwnd.sel(time=t)[::10,::10],
-                  vwnd.sel(time=t)[::10,::10], color= 'k') 
-        plot_background(ax1)
-        plt.colorbar(cf1, orientation='vertical',cax=cbar_ax1)    
-        ax1.set_title('SLP (hPa) and 30m Wind Vectors (m/s)')
+                  vwnd.sel(time=t)[::10,::10], color= 'k')    
+        
         camera.snap()
+        # -------------
+        # Cosmedics 
+        # --
+        plot_background(ax1)
+        plt.colorbar(cf1, orientation='vertical',cax=cbar_ax1) 
+        ax1.set_title('SLP (hPa) and 30m Wind Vectors (m/s) for '\
+                      +str(t.dt.strftime('%m/%d/%Y %HZ').values), fontsize = 20)  
     
     animation = camera.animate(interval = 200, repeat = True,
                                    repeat_delay = 100000)
-    animation.save('E0'+str(event)+'_wind_slp.gif')    
+    animation.save('./animations/slp_and_wind/E0'+str(event)+'_wind_slp.gif')    
 # ----------
-# make gif for all events                           
-for event in range(1,2):
-     make_gif(event)            
+# make gif for all events  
+if __name__ == "__main__":                         
+    for event in range(1,13):
+         make_gif(event)            
             
 
     

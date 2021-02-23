@@ -1,14 +1,21 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
+# Souza & Ramos da Silva,
+
+# Ocean-Land Atmosphere Model (OLAM) performance for major extreme
+#   meteorological events near the coastal region of southern Brazil,
+
+# Climate Research, in revision 2020
 """
 Created on Thu Jan 21 18:06:04 2021
 
+Script created to perform the statistics analysis.
+    Altough that for some analysis perfomed here, there were already some 
+    specific modules, we prefered to do them from scratch, whenever possible.
+
 @author: Danilo
 """
-# 
+#
 import numpy as np
 from scipy import stats
-# ----------
 
 # ----------
 def di_acc(obs, olam):
@@ -139,10 +146,9 @@ def D_pielke(obs, olam):
     tmp2 = RMSE(obs, olam)/np.nanstd(obs_v)
     tmp3 = RMSE_bias(obs, olam)/np.nanstd(obs_v)
     return tmp1+tmp2+tmp3
-
-
-def linear_regression(x, y):     
-    N = len(x)
+# ----------
+def linear_regression(x, y):    
+# from https://towardsdatascience.com/simple-linear-regression-in-python-numpy-only-130a988c0212
     x_mean = x.mean()
     y_mean = y.mean()
     

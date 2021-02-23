@@ -1,7 +1,13 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
+# Souza & Ramos da Silva,
+
+# Ocean-Land Atmosphere Model (OLAM) performance for major extreme
+#   meteorological events near the coastal region of southern Brazil,
+
+# Climate Research, in revision 2020
 """
 Created on Mon Feb  1 21:32:34 2021
+
+Script for analysis of the temporal evolution of the precipitation
 
 @author: Danilo
 """
@@ -17,6 +23,11 @@ import matplotlib.gridspec as gridspec
 
             
 def mean_corrl(event):
+    '''
+    Calculate temporal evolution of the spatial correlation of mean acc. prec.
+         Additionally, returns the value of mean, max and min
+         accumulated precipitation for the domain
+    '''
     olam,obs = GetPrecData(event)[0],GetPrecData(event)[1]
     if event < 3:
         obs = obs.resample(time='3H').sum(dim='time')
@@ -41,6 +52,9 @@ def mean_corrl(event):
             up_obs, down_obs, up_olam, down_olam)
 
 def ptot_corrl(event):
+    '''
+    Calculate spatial correlation index for the total accumulated precipitation
+    '''
     olam,obs = GetPrecData(event)[0],GetPrecData(event)[1]
     if event < 3:
         obs = obs.resample(time='3H').sum(dim='time')
@@ -50,46 +64,57 @@ def ptot_corrl(event):
     olampt = []
     corr = []
     for t in range(len(olam.time)):
-        
         s_obs = obs[t].sum('lon').sum('lat')
         s_olam = olam[t].sum('lon').sum('lat')       
         obspt.append(s_obs)
         olampt.append(s_olam)
         corr.append(st.Scorr(obs[t], olam_r[t])[0])
-
     return obspt, olampt, corr, olam.time
 
 def plot_panel(which):
+    '''
+    Plot temporal evolution of the accumulated precipitation
     
+    Parameters
+    ----------
+    which: string
+        Which data to plot.
+        If 'pt': plots the total accumulated (sum over entire domain) and
+            the spatial correlation index
+        If 'mean': plot mean acccmulated precipitation (line) and 
+            maximum and minimum values (shaded)       
+    '''
+    # figure params
     fig = plt.figure(figsize=(15,15))
     gs1 = gridspec.GridSpec(4, 3, hspace=0.1, wspace=0.3)
     axs = []
+    # box for plotting texts
     props = dict(boxstyle='round', facecolor='wheat', alpha=0.5)    
     for i in range(1,13):          
         axs.append(fig.add_subplot(gs1[i - 1]))
-        ax1 = axs[-1]           
+        ax1 = axs[-1]  
+        # get data         
         if which == 'pt':
             tmp = ptot_corrl(i)
             ax1.set_yscale('log')
         elif which == 'mean':
             tmp = mean_corrl(i)
             obst, obsb, olabt, olamb = tmp[4],tmp[5],tmp[6],tmp[7]            
-        obs, olam, corr, time = tmp[0], tmp[1], tmp[2], tmp[3]                
+        obs, olam, corr, time = tmp[0], tmp[1], tmp[2], tmp[3]   
+        # plots             
         ax1.plot(time,obs, linewidth=4,
                         c='#0077b6', label='Reanalysis')
         ax1.plot(time,olam, linewidth=4,
                         c='#69140E',  label='OLAM')   
         ax2 = ax1.twinx()  
         ax2.scatter(time, corr, alpha=0.7,
-                        c='#41521F', label='Correlation')                    
+                        c='#41521F', label='Correlation')   
+        # shading for max and min values                 
         if which == 'mean':
             ax1.fill_between(time,obst,obsb, color='#0077b6',alpha=0.2)                                
             ax1.fill_between(time,olabt,olamb, color='#69140E',alpha=0.2)                                     
-#        ax1.tick_params(axis = 'x',rotation=20)
-        ax1.tick_params(labelsize=14)
-        ax2.tick_params(labelsize=14)
-#        ax1.tick_params(axis = 'x',labelsize=12)  
         plt.xticks([])
+        # legend
         lines, labels = ax1.get_legend_handles_labels()
         lines2, labels2 = ax2.get_legend_handles_labels()
         if which == 'mean': 
@@ -97,8 +122,10 @@ def plot_panel(which):
         elif which == 'pt':
             loc = 'lower right'
         if i == 1:
-            ax2.legend(lines + lines2, labels + labels2, loc=loc)   
-#        lim = ax2.get_ylim()[1]
+            ax2.legend(lines + lines2, labels + labels2, loc=loc)
+        # plot cosmedics
+        ax1.tick_params(labelsize=14)
+        ax2.tick_params(labelsize=14)            
         ax1.text(0.85,0.85, str(i), fontsize = 18, transform=ax1.transAxes, bbox=props)
         ax1.set_xlim(time[0],time[-1])        
         ax2.set_ylim(0,1)
@@ -107,7 +134,9 @@ def plot_panel(which):
 
 
 def GetDailyAccPrec(event):
-    
+    '''
+    Transform prec. to daily accumulates
+    '''
     tmp = GetPrecData(event)
     olam,obs = tmp[0],tmp[1]    
     if event > 2:
@@ -118,11 +147,13 @@ def GetDailyAccPrec(event):
     obs = obs.resample(time='1D').sum('time')
     if event > 2 and event !=9:
         obs = obs[:-1]
-
     return obs, olam
 
 def DataToDataFrame(data):
-    
+    '''
+    Transforms the DataArray data to a DataFrame
+     (easiest way I've found to create the boxplots)
+    '''
     list_ = []
     for t in data.time:
         l = list(data.sel(time=t).values.ravel())
@@ -131,18 +162,18 @@ def DataToDataFrame(data):
     
 #    dates = data['time'].dt.strftime("%D")
 #    df.columns = dates
-    df.columns = range(1,len(data.time)+1)
-    
+    df.columns = range(1,len(data.time)+1)    
     return df 
 
 def TestMannWithneyU_DailyAccPrec():
+    '''
+    Perform Mann Whitnney U test for Daily accumulated precipitation
+    '''
     MWUT = {}
     for i in range(1,13):
         MWUT['Event '+str(i)] = []
         tmp = GetDailyAccPrec(i)
         obs,olam = tmp[0],tmp[1] 
-#            olam_df = DataToDataFrame(olam)
-#            obs_df = DataToDataFrame(obs) 
         #daily corrl
         olam_r = regrid(obs.lon,obs.lat,olam,i)
         olam_r, obs_acc = olam_r.cumsum('time'), obs.cumsum('time')
@@ -152,24 +183,29 @@ def TestMannWithneyU_DailyAccPrec():
             if p > alpha:
                 MWUT['Event '+str(i)].append('Same distribution (fail to reject H0)')
             else:
-                	MWUT['Event '+str(i)].append('Different distribution (reject H0)')
-    
+                	MWUT['Event '+str(i)].append('Different distribution (reject H0)')   
     return MWUT
 
 def PlotBoxPLot():
-
+    '''
+    Create Boxplots for daily accumulated precipitation
+    '''
+    # Figure params
     fig = plt.figure(figsize=(15,15))
     gs1 = gridspec.GridSpec(4, 3, hspace=0.25, wspace=0.25)
     axs = []
+    # colors for plots
     c1 ='#0077b6'
     c2 = '#ff6961'
+    # box for plotting texts
     props = dict(boxstyle='round', facecolor='wheat', alpha=0.5) 
     for i in range(1,13):
+        # get data
         tmp = GetDailyAccPrec(i)
         obs,olam = tmp[0],tmp[1] 
         olam_df = DataToDataFrame(olam)
         obs_df = DataToDataFrame(obs) 
-        #daily corrl
+        # daily spatial correlation
         olam_r = regrid(obs.lon,obs.lat,olam,i)
         olam_r, obs_acc = olam_r.cumsum('time'), obs.cumsum('time')
         corrl = []
@@ -184,9 +220,9 @@ def PlotBoxPLot():
         ax1 = axs[-1]
         axs.append(ax1)
         ax2 = axs[-1].twinx()
-        
+        # ticks for the x-axis
         ticks = np.arange(0,len(obs_df.columns))
-             
+        # plot reanalysis
         ax1.boxplot(obs_df, labels=obs_df.columns,
         positions=np.array(ticks)*4-1, widths=1.6,
         showfliers=False,
@@ -194,7 +230,7 @@ def PlotBoxPLot():
         boxprops=dict(facecolor=c1), 
         medianprops=dict(color='k', linewidth=2),
         flierprops=dict(color='k'))
-        
+        # plot olam
         ax1.boxplot(olam_df, labels=olam_df.columns,
         positions=np.array(ticks)*4+1,widths=1.6,                
         showfliers=False,
@@ -202,22 +238,19 @@ def PlotBoxPLot():
         boxprops=dict(facecolor=c2), 
         medianprops=dict(color='k', linewidth=2),
         flierprops=dict(color='k'))
-        
+        # plot correlation values
         ax2.plot(s1.dropna(),c='#028e2c',marker='v',
                  alpha=0.85,  label='Corrl.', linewidth=2)
         ax2.set_ylim(0,1)
         ax2.grid(linewidth=0.25,c='gray')
-        
-#        max_ = np.max([np.amax(obs.values),np.amax(olam.values)])            
-#        ax1.set_ylim(0,max_)
-        
+        # create fake labels
         if i == 1:
             plt.plot([], c=c1, label='Reanalysis')
             plt.plot([], c=c2, label='OLAM')
             plt.legend(fontsize=14,loc='upper right')
-        
+        # ticks
         plt.xticks(np.arange(0, (len(ticks)) * 4, 4), range(1,len(obs_df.columns)+1))
-        
+        # cosmedics
         ax1.text(.05,0.8, str(i), fontsize = 14,
                  transform=ax1.transAxes, bbox=props)
         ax1.tick_params(labelsize=12)
@@ -231,10 +264,9 @@ def PlotBoxPLot():
                 ax2.set_ylabel('Corrl I.',fontsize = 16)    
     pl.savefig('./figures/accprec_time_evo/daily_boxplot.jpg', format='jpg')
     pl.savefig('./figures/accprec_time_evo/daily_boxplot.eps', format='eps', dpi=300)
-      
-
           
-#if __name__ == "__main__":
-#    plot_panel('mean')
-#    plot_panel('pt')
-#    PlotBoxPLot()
+if __name__ == "__main__":
+    # plot_panel('mean')
+    # plot_panel('pt')
+    PlotBoxPLot()
+    test = TestMannWithneyU_DailyAccPrec()

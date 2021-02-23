@@ -1,7 +1,14 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
+# Souza & Ramos da Silva,
+
+# Ocean-Land Atmosphere Model (OLAM) performance for major extreme
+#   meteorological events near the coastal region of southern Brazil,
+
+# Climate Research, in revision 2020
 """
 Created on Sat Jan 23 19:45:09 2021
+
+This is an auxilliary script for testing some routines.
+ It can be ignored.
 
 @author: Danilo
 """
@@ -45,36 +52,6 @@ def CheckOLAM():
                                       lat=slice(-27,-26.95),lon=-48.15).values,
                         color='b')
             plt.title('OLAM accumulated (red) x unaccumulated (blue) data for Fpolis')
-
-def GPM3h():
-
-    ##### Check Reanalysis algorithm for 3h
-    for event in range(1,3):
-        olam_data,re_data = GetData(event)[0],GetData(event)[1]    
-        re_3h = GPM_to_3h(olam_data.time,re_data)
-        plt.figure()        
-        for t in olam_data.time:
-            plt.scatter(re_data.time.sel(time=t),
-                        re_data.sel(time=t,
-                                      lat=slice(-27,-26.95),lon=-48.15).values,
-                        color='r')
-            plt.scatter(re_3h.time.sel(time=t),
-                        re_3h.sel(time=t,
-                                      lat=slice(-27,-26.95),lon=-48.15).values,
-                        color='b') 
-        plt.figure() 
-        re_data_acc = re_data.cumsum('time')
-        re_3h_acc = re_data.cumsum('time')
-        for t in olam_data.time:
-            plt.scatter(re_data_acc.time.sel(time=t),
-                        re_data_acc.sel(time=t,
-                                      lat=slice(-27,-26.95),lon=-48.15).values,
-                        color='r')
-            plt.scatter(re_3h_acc.time.sel(time=t),
-                        re_3h_acc.sel(time=t,
-                                      lat=slice(-27,-26.95),lon=-48.15).values,
-                        color='b')                          
-            
  
 def CheckEachEventAcc():
     

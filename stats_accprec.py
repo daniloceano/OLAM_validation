@@ -1,10 +1,17 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
+# Souza & Ramos da Silva,
+
+# Ocean-Land Atmosphere Model (OLAM) performance for major extreme
+#   meteorological events near the coastal region of southern Brazil,
+
+# Climate Research, in revision 2020
 """
 Created on Mon Feb  1 18:54:33 2021
 
+Script for analysing the total accumulated precipitation
+
 @author: Danilo
 """
+#
 import statistics_Danilo as st
 from prepare_data import (regrid, GetPrecData)
 from scipy import stats
@@ -21,16 +28,11 @@ import cartopy.feature as cfeature
 import matplotlib.ticker as mticker
 from matplotlib.colors import LinearSegmentedColormap
 import matplotlib.colors as colors
+
 # ----------
 def GetTotalAcc(event):
-    olam,obs = GetPrecData(event)[0],GetPrecData(event)[1]           
-#    obs = regrid(olam.lon,olam.lat,obs,event)
-#    obs = obs.cumsum('time')     
-#    if event < 3:
-#        obs = obs[-48] 
-#    else:
-#        obs = obs[-9]
-    
+    tmp = GetPrecData(event)
+    olam,obs = tmp[0],tmp[1]
     obs_acc = obs[0]*0    
     if event < 3:    
         for t in obs.time[:-48]:
@@ -41,8 +43,8 @@ def GetTotalAcc(event):
         
     olam = regrid(obs.lon,obs.lat,olam,event)        
     olam = olam[-1]
-    
     return obs_acc, olam
+
 # ----------
 # params for plotting
 # --
@@ -64,9 +66,8 @@ def plot_background(ax):
     ax.add_feature(states_provinces, edgecolor='black', linewidth=0.5)
     ax.add_feature(country_borders, edgecolor='black', linewidth=0.5)
     return ax
-
+# --
 def plot_accprec_panel():
-    
     # create colormap
     col_hcl = [
      [0.9921568627450981, 0.6588235294117647, 0.7058823529411765],       
@@ -102,10 +103,8 @@ def plot_accprec_panel():
             obs = tmp[0].transpose('lat','lon')
             olam = tmp[1].transpose('lat','lon')
             if np.max(obs.values) > np.max(olam.values):
-#                max_ = float(np.mean(obs).values + np.std(obs).values)
                 max_ = float(np.amax(obs).values)
             else:
-#                max_ = float(np.mean(olam).values + np.std(olam).values)
                 max_ = float(np.amax(olam).values)
             clevs_prec = np.arange(1, round(max_,-1), round(max_,-1)/10)
         # figure
@@ -156,9 +155,12 @@ def plot_accprec_panel():
     pl.savefig('./figures/accprec/accprec_panel.jpg', format='jpg')
     pl.savefig('./figures/accprec/accprec_panel.eps', format='eps', dpi=300)
         
-    
+# ----------    
 def obs_model_panel():
-    
+    '''
+    Make scater plot of observed  x simulated data,
+        and also plot a linear regression line
+    '''
         # create colormap
     col_hcl = [
      [0.9921568627450981, 0.6588235294117647, 0.7058823529411765],       
@@ -174,34 +176,44 @@ def obs_model_panel():
     col_hcl.reverse()
     cmap = LinearSegmentedColormap.from_list(
         'MyMap', col_hcl, N=20)
-    
+    # figure params
     fig = plt.figure(figsize=(15,15))
     gs1 = gridspec.GridSpec(4, 3, hspace=0.2, wspace=0.2)
     axs = []
+    # box for plotting texts
     props = dict(boxstyle='round', facecolor='wheat', alpha=0.5)
-    for i in range(1,13):          
+    for i in range(1,13):    
+        # fig
         axs.append(fig.add_subplot(gs1[i - 1]))
-        ax1 = axs[-1]           
+        ax1 = axs[-1]      
+        # get data
         tmp = GetTotalAcc(i)
         obs, olam = tmp[0].transpose('lat','lon'),tmp[1].transpose('lat','lon')
+        # This first method returns the regression data
+        #   in a comprehensive way, but not best for plot
         B0, B1, reg_line = st.linear_regression(obs.values, olam.values)
         R = st.Scorr(obs, olam)[0]        
         text = ''' R^2: {}
         y = {} + {}X'''.format(round(R**2, 2),
                                round(B0, 2),
                                round(B1, 2))
-        gradient, intercept, r_value, p_value, std_err = stats.linregress(olam.values.ravel(),obs.values.ravel())            
+        # This method is not great for presenting data
+        #   but it is easier for plotting
+        gradient, intercept, r_value, p_value, std_err = \
+            stats.linregress((olam.values.ravel()),
+                             (obs.values.ravel()))            
         max_ = np.max([np.amax(obs.values),np.amax(olam.values)])            
         min_ = np.min([np.amin(obs.values),np.amin(olam.values)])
         x1=np.linspace(min_,max_,500)
         y1=gradient*x1+intercept 
+        # plot data
         ax1.scatter(olam,obs,c=obs,cmap=cmap)
-#        ax1.plot(obs, B0 + B1*obs, c = 'r', linewidth=5, alpha=.5, solid_capstyle='round')
-        ax1.loglog(x1,y1,"k")
+        ax1.plot(x1,y1,"k")
         if i > 9:        
             ax1.set_xlabel('Olam', fontsize = 18)
         if i  == 1 or i == 4 or i == 7 or i == 10:
             ax1.set_ylabel('Reanalysis',fontsize = 18)
+        # map comedics
         ax1.text(0.1,0.85, str(i), fontsize = 18, transform=ax1.transAxes, bbox=props)
         ax1.text(0.3,0.1, s=text, fontsize = 12, transform=ax1.transAxes, bbox=props)
         ax1.set_yscale('log')
@@ -210,14 +222,16 @@ def obs_model_panel():
         ax1.set_xlim(0,max_)
         ax1.set_ylim(0,max_)
         ax1.set_aspect('equal', 'datalim')
-        
     pl.savefig('./figures/accprec/obs_x_olam_panel.jpg', format='jpg')    
     pl.savefig('./figures/accprec/obs_x_olam_panel.eps', format='eps', dpi=300)    
 
-        
+# ----------        
 def TestMannWithneyU_TotalAccPrec():
+    '''
+    Performs a Mann Whitnney U test for total accumulated precipitation
+        Print results on terminal.
+    '''
     for i in range(1,13):
-
         obs, olam = GetTotalAcc(i)
         stat, p = mannwhitneyu(obs.values.ravel(), olam.values.ravel())
         alpha = 0.05
@@ -228,19 +242,29 @@ def TestMannWithneyU_TotalAccPrec():
         if p > alpha:
            plt.title('Same distribution (fail to reject H0)')
         else:
-            	plt.title('Different distribution (reject H0)')  
-    
+            	plt.title('Different distribution (reject H0)') 
+                
+# ---------- 
 def histogram():
-    
+    '''
+    Plot frequency distribution of precipitation versus 
+        the precipitation amount
+    '''
+    # figure params
     fig = plt.figure(figsize=(15,15))
     gs1 = gridspec.GridSpec(4, 3, hspace=0.2, wspace=0.2)
-    axs = []    
+    axs = [] 
+    # box for plotting texts
     props = dict(boxstyle='round', facecolor='wheat', alpha=0.5)
     for i in range(1,13): 
-        obs, olam = GetTotalAcc(i)
-        obs1d, olam1d = np.reshape(obs.values,obs.size), np.reshape(olam.values,obs.size) 
+        # fig
         axs.append(fig.add_subplot(gs1[i - 1]))
-        ax1 = axs[-1]  
+        ax1 = axs[-1]
+        # get data
+        obs, olam = GetTotalAcc(i)        
+        # reshape it into 1d arrays
+        obs1d, olam1d = np.reshape(obs.values,obs.size), np.reshape(olam.values,obs.size) 
+        # set distinct bins based on the maximum prec. values
         maxp = np.amax([np.amax(obs1d),np.amax(olam1d)])
         if maxp > 300:
             interval = 50
@@ -248,14 +272,19 @@ def histogram():
             interval = 20
         else:
             interval = 10
+        # get histograms data 
         histo = ax1.hist(obs1d, bins=range(0, int(round(maxp,-1)) + interval, interval))
         valueso, binso = histo[0],  histo[1]
         histm =  ax1.hist(olam1d, bins=range(0, int(round(maxp,-1)) + interval, interval))
         valuesm, binsm =  histm[0], histm[1]
+        # it automatically plots the histograms
+        #   so firstly it is needed to delete them
         ax1.clear()
+        # plot histograms
         ax1.plot(binso[:-1],valueso, c='#0077b6',linestyle='--', label='Reanalysis', linewidth=4)
         ax1.plot(binsm[:-1],valuesm,  c='#69140E', label='OLAM', linewidth=4)
         ax1.set_yscale('log')
+        # map cosmedics
         if maxp > 100:
             ax1.set_xscale('log')
             ax1.set_aspect('equal', 'datalim')
@@ -269,18 +298,14 @@ def histogram():
             ax1.set_xlabel('Precipitation (mm)', fontsize = 18)
         if i  == 1 or i == 4 or i == 7 or i == 10:
             ax1.set_ylabel('Num. of grid points',fontsize = 17)
-        
         pl.savefig('./figures/accprec/histogram.jpg', format='jpg')    
-        pl.savefig('./figures/accprec/histogram.eps', format='eps', dpi=300)    
-    
-def truncate_colormap(cmap, minval=0.0, maxval=1.0, n=100):
-    new_cmap = colors.LinearSegmentedColormap.from_list(
-        'trunc({n},{a:.2f},{b:.2f})'.format(n=cmap.name, a=minval, b=maxval),
-        cmap(np.linspace(minval, maxval, n)))
-    return new_cmap  
-
+        pl.savefig('./figures/accprec/histogram.eps', format='eps', dpi=300)     
+        
+# ----------
 def export_stats(): 
-# export statistics to csv file     
+    '''
+    Export statistics to csv file
+    '''     
     arr = []
     for event in range(1,13):
         print('------------------------------------------------')
@@ -307,11 +332,9 @@ def export_stats():
         ev.append(st.RMSE_bias(obs, olam))
         ev.append(np.std(st.di_acc(obs, olam)).values)
         ev.append(st.S_sqr(obs, olam))
-        ev.append(st.oncordanceIndex(obs, olam)) 
+        ev.append(st.ConcordanceIndex(obs, olam)) 
         ev.append(st.D_pielke(obs, olam))
         arr.append(ev)
-        
-
     with open('accprec_validation_stats.csv','w') as f:
         writer = csv.writer(f)
         writer.writerow(['Event', 'Ptot_obs','obs_std','Ptot_model','model_std', 'DeltaPtot', 'Bias',
@@ -322,9 +345,9 @@ def export_stats():
         writer.writerows(arr)
         
 # ----------
-#if __name__ == "__main__": 
-#        plot_accprec_panel()
-#        histogram()
-#        obs_model_panel()
-#        export_stats()
-#                
+if __name__ == "__main__": 
+        plot_accprec_panel()
+        histogram()
+        obs_model_panel()
+        export_stats()
+                
