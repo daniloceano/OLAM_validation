@@ -14,23 +14,23 @@ Atuhors: Souza & Ramos da Silva
 
 In order to run the scripts exactly as they are provided here, you need to download the data and separe it in the following folders:
 
-	* GPM_TRMM_netcdf
-	* MERRA_netcdf
-	* OLAM_netcdf
-	* Station_data
+* GPM_TRMM_netcdf
+* MERRA_netcdf
+* OLAM_netcdf
+* Station_data
 
 Additionally, you should create the following folders and sub-folders for saving the figures:
 
-	*animations
-		* slp_and_wind
-		* wind_prec
-	* figures
-		* accprec
-		* accprec_time_evo
-		* lat_sens_heat
-		* satellite
-		* slp_wind
-		* station
+*animations
+  * slp_and_wind
+  * wind_prec
+* figures
+  * accprec
+  * accprec_time_evo
+  * lat_sens_heat
+  * satellite
+  * slp_wind
+  * station
 
 ## Data
 
